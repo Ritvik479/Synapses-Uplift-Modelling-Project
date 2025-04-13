@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier
+import streamlit as st
 
 class UpliftModel : 
     def __init__(self) :
@@ -51,3 +52,44 @@ class UpliftModel :
             return result
         else:
             print(result.head())
+
+
+class AppBuilder :
+    def __init__(self) : 
+        self.model = UpliftModel()
+
+    def create(self) :
+        st.title("Conversion Attribution & Uplift Modelling Simulator")
+        st.write("Use this simulator to model hypothetical changes and see \
+             their potential impact on conversion rates.")
+    
+        # Upload data for simulation
+        if st.button("Load Preloaded Data"):
+            self.model.load("criteo-uplift-v2.1.csv.gz")
+            st.success("Preloaded data loaded successfully.")
+            st.dataframe(self.model.train_data.head())
+            self.model.train()
+    
+    def change(self) : 
+        st.sidebar.header("Changes to Simulate")
+        changes = {}
+        for column in self.model.features:  # Exclude target columns
+            change = st.sidebar.number_input(f"Change in {column}", min_value=-5, max_value=15, value=0)
+            if change != 0:
+                changes[column] = change
+        
+        if st.sidebar.button("Simulate Changes"):
+            if changes:
+                # Select a random row to simulate changes on
+                input_data = self.model.train_data.sample(1).copy()
+                for feature, change in changes.items():
+                    input_data[feature] += change
+                
+                result = self.model.predict(input_data, return_df=True)
+
+                st.subheader("Results")
+                st.dataframe(result)
+
+
+if __name__ == "__main__" :
+    print("This module is meant to be imported and not run directly")
